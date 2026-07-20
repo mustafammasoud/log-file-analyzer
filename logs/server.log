@@ -1,0 +1,12 @@
+2025-01-15 09:00:00 INFO Server starting on port 8080
+2025-01-15 09:00:02 INFO Loaded 15 API endpoints
+2025-01-15 09:00:05 WARNING SSL certificate expires in 30 days
+2025-01-15 09:00:10 INFO Request GET /api/users completed in 45ms
+2025-01-15 09:00:15 ERROR POST /api/orders failed: validation error
+2025-01-15 09:00:20 CRITICAL Disk I/O error on /dev/sda1 - system may become unstable
+2025-01-15 09:00:25 INFO Scheduled backup started
+2025-01-15 09:00:30 WARNING Memory usage at 92%
+2025-01-15 09:00:35 CRITICAL Out of memory: killed process nginx (PID 1234)
+2025-01-15 09:00:40 ERROR Database connection pool exhausted
+2025-01-15 09:00:45 INFO Health check endpoint returned 200 OK
+2025-01-15 09:00:50 WARNING High latency detected on /api/reports (3200ms)

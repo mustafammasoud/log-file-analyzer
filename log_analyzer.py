@@ -2,11 +2,13 @@
 Log Analyzer Module
 -------------------
 Provides the LogAnalyzer class responsible for counting log levels
-(INFO, WARNING, ERROR, CRITICAL) within log file lines using regex.
+(INFO, WARNING, ERROR, CRITICAL) within log file lines using regex,
+and extracting common error messages.
 """
 
 import re
-from typing import Dict, List
+from collections import Counter
+from typing import Dict, List, Tuple
 
 
 class LogAnalyzer:
@@ -14,6 +16,7 @@ class LogAnalyzer:
     Analyzes log lines and counts occurrences of each severity level.
 
     Supports: INFO, WARNING, ERROR, CRITICAL
+    Also extracts and ranks the most common ERROR/CRITICAL messages.
     """
 
     # The four standard log levels this analyzer tracks
@@ -26,13 +29,19 @@ class LogAnalyzer:
         r'(INFO|WARNING|ERROR|CRITICAL)\b'
     )
 
+    # Pattern to extract the full error message after the log level
+    MESSAGE_PATTERN = re.compile(
+        r'\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+'
+        r'(?:ERROR|CRITICAL)\s+(.*)'
+    )
+
     def __init__(self) -> None:
         """Initialize the analyzer with zeroed counters."""
         self.reset()
 
     def reset(self) -> None:
         """
-        Reset all counters to zero.
+        Reset all counters and error message store to zero.
         Useful when analyzing a new set of log files.
         """
         self._counts: Dict[str, int] = {
@@ -41,6 +50,7 @@ class LogAnalyzer:
             "ERROR": 0,
             "CRITICAL": 0,
         }
+        self._error_messages: List[str] = []
 
     def analyze_lines(self, lines: List[str]) -> Dict[str, int]:
         """
@@ -71,6 +81,37 @@ class LogAnalyzer:
 
         return batch_counts
 
+    def extract_error_messages(self, lines: List[str]) -> None:
+        """
+        Extract ERROR and CRITICAL message text from log lines and store them.
+
+        Args:
+            lines: List of log file lines to scan for error messages.
+        """
+        for line in lines:
+            match = self.MESSAGE_PATTERN.search(line)
+            if match:
+                message = match.group(1).strip()
+                if message:
+                    self._error_messages.append(message)
+
+    def get_common_errors(self, top_n: int = 5) -> List[Tuple[str, int]]:
+        """
+        Get the most common ERROR/CRITICAL messages, ranked by frequency.
+
+        Args:
+            top_n: Number of top messages to return (default: 5).
+
+        Returns:
+            List of (message, count) tuples sorted by count descending.
+            Example: [("timeout", 3), ("connection lost", 1), ...]
+        """
+        if not self._error_messages:
+            return []
+
+        counter = Counter(self._error_messages)
+        return counter.most_common(top_n)
+
     def analyze_file(self, filename: str, lines: List[str]) -> Dict[str, int]:
         """
         Analyze a single file's lines and accumulate results.
@@ -83,6 +124,9 @@ class LogAnalyzer:
             Dictionary of counts for this specific file.
         """
         file_counts = self.analyze_lines(lines)
+
+        # Extract error messages from this file
+        self.extract_error_messages(lines)
 
         # Accumulate into the master counter
         for level in self.VALID_LEVELS:

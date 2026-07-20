@@ -6,8 +6,10 @@ Provides the LogReader class responsible for discovering and reading
 """
 
 import logging
+import re
+from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -20,6 +22,9 @@ class LogReader:
     Attributes:
         logs_dir (Path): Path to the directory containing log files.
     """
+
+    # Pattern to extract the date from the beginning of a log line: YYYY-MM-DD
+    DATE_PATTERN = re.compile(r'^(\d{4}-\d{2}-\d{2})')
 
     def __init__(self, logs_dir: str = "logs") -> None:
         """
@@ -104,9 +109,86 @@ class LogReader:
         logger.info(f"Read {len(lines)} lines from '{filepath.name}'")
         return lines
 
-    def read_all(self) -> dict:
+    def filter_by_date_range(
+        self,
+        lines: List[str],
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[str]:
         """
-        Discover all .log files and read their contents.
+        Filter log lines to only include entries within a date range.
+
+        Args:
+            lines: List of log lines to filter.
+            start_date: Inclusive start date (format: YYYY-MM-DD). If None, no lower bound.
+            end_date: Inclusive end date (format: YYYY-MM-DD). If None, no upper bound.
+
+        Returns:
+            Filtered list of lines whose dates fall within the range.
+
+        Raises:
+            ValueError: If a date string is provided in an invalid format.
+        """
+        if start_date is None and end_date is None:
+            return lines  # No filtering needed
+
+        parsed_start: Optional[datetime] = None
+        parsed_end: Optional[datetime] = None
+
+        if start_date is not None:
+            try:
+                parsed_start = datetime.strptime(start_date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(
+                    f"Invalid start date format: '{start_date}'. Expected YYYY-MM-DD."
+                )
+
+        if end_date is not None:
+            try:
+                parsed_end = datetime.strptime(end_date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(
+                    f"Invalid end date format: '{end_date}'. Expected YYYY-MM-DD."
+                )
+
+        filtered: List[str] = []
+
+        for line in lines:
+            match = self.DATE_PATTERN.match(line)
+            if not match:
+                # Lines without a date at the start are kept as-is
+                filtered.append(line)
+                continue
+
+            try:
+                line_date = datetime.strptime(match.group(1), "%Y-%m-%d")
+            except ValueError:
+                # If date can't be parsed, keep the line
+                filtered.append(line)
+                continue
+
+            # Check lower bound
+            if parsed_start is not None and line_date < parsed_start:
+                continue
+            # Check upper bound
+            if parsed_end is not None and line_date > parsed_end:
+                continue
+
+            filtered.append(line)
+
+        return filtered
+
+    def read_all(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> dict:
+        """
+        Discover all .log files, optionally filter by date range, and read contents.
+
+        Args:
+            start_date: Optional inclusive start date filter (YYYY-MM-DD).
+            end_date: Optional inclusive end date filter (YYYY-MM-DD).
 
         Returns:
             Dictionary mapping filename (str) -> list of lines (List[str]).
@@ -114,15 +196,37 @@ class LogReader:
 
         Raises:
             FileNotFoundError: If the logs directory doesn't exist.
-            ValueError: If no .log files found.
+            ValueError: If date format is invalid or no .log files found.
         """
+        # Validate date formats BEFORE reading any files (fatal if invalid)
+        if start_date is not None:
+            try:
+                datetime.strptime(start_date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(
+                    f"Invalid start date format: '{start_date}'. Expected YYYY-MM-DD."
+                )
+
+        if end_date is not None:
+            try:
+                datetime.strptime(end_date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(
+                    f"Invalid end date format: '{end_date}'. Expected YYYY-MM-DD."
+                )
+
         log_files = self.discover_log_files()
         file_contents: dict = {}
 
         for filepath in log_files:
             try:
                 lines = self.read_file(filepath)
-                file_contents[filepath.name] = lines
+
+                # Apply optional date filtering
+                lines = self.filter_by_date_range(lines, start_date, end_date)
+
+                if lines:  # Only include files that have matching lines after filter
+                    file_contents[filepath.name] = lines
             except (ValueError, PermissionError, OSError) as e:
                 logger.warning(f"Skipping '{filepath.name}': {e}")
                 print(f"[WARNING] Skipping '{filepath.name}': {e}")

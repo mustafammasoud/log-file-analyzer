@@ -4,19 +4,19 @@ A powerful yet lightweight **Python CLI tool** that reads application log files,
 
 ---
 
-## ✨ Features
+##  Features
 
-- **📈 Log Level Analysis** — Automatically counts `INFO`, `WARNING`, and `ERROR` messages using intelligent regex parsing.
-- **📄 CSV Export** — Save the analysis summary to a CSV file for reporting or further processing.
-- **🔍 Keyword Search** — Search for any keyword (case-insensitive) across all log lines, with line numbers and formatted output.
-- **📂 Custom Log File Support** — Analyze any log file by specifying its path via `--log-file`.
-- **🛡️ Robust Error Handling** — Gracefully handles missing files, empty files, directories, permission errors, and more.
-- **🧼 Clean & Modular Code** — Well-documented functions with type hints, docstrings, and logical separation of concerns.
-- **⚡ Zero External Dependencies** — Built entirely on Python's standard library — no `pip install` required.
+- Log Level Analysis** — Automatically counts `INFO`, `WARNING`, and `ERROR` messages using intelligent regex parsing.
+- CSV Export** — Save the analysis summary to a CSV file for reporting or further processing.
+- Keyword Search** — Search for any keyword (case-insensitive) across all log lines, with line numbers and formatted output.
+- Custom Log File Support** — Analyze any log file by specifying its path via `--log-file`.
+- Robust Error Handling** — Gracefully handles missing files, empty files, directories, permission errors, and more.
+- Clean & Modular Code** — Well-documented functions with type hints, docstrings, and logical separation of concerns.
+- Zero External Dependencies** — Built entirely on Python's standard library — no `pip install` required.
 
 ---
 
-## 🛠️ Installation
+##  Installation
 
 ### Prerequisites
 
@@ -37,40 +37,24 @@ cd log-file-analyzer
 python3 --version
 ```
 
-3. **Run the analyzer:**
+3. **Run the app:**
 
 ```bash
-python3 analyzer.py
+python3 app.py
 ```
 
-> No additional dependencies to install. You're ready to go! 🚀
+> No additional dependencies to install. You're ready to go! 
 
 ---
 
-## 🚀 Usage
+##  Usage
 
 ### Basic Analysis
 
 Analyze the default `app.log` file:
 
 ```bash
-python3 analyzer.py
-```
-
-### Custom Log File
-
-Point the tool at any log file:
-
-```bash
-python3 analyzer.py --log-file /var/log/myapp.log
-```
-
-### Export to CSV
-
-Generate a machine-readable report:
-
-```bash
-python3 analyzer.py --export summary.csv
+python3 app.py
 ```
 
 ### Search for a Keyword
@@ -81,22 +65,6 @@ Find every log line containing a specific word or phrase:
 python3 analyzer.py --search "database"
 python3 analyzer.py --search "timeout"
 python3 analyzer.py --search "ERROR"
-```
-
-### Combine Options
-
-Use multiple flags together for powerful one-liners:
-
-```bash
-python3 analyzer.py --log-file server.log --export report.csv --search "warning"
-```
-
-### Help
-
-View all available options:
-
-```bash
-python3 analyzer.py --help
 ```
 
 ---
@@ -144,27 +112,16 @@ LINE     CONTENT
 17       2025-01-15 08:00:30 ERROR Unhandled exception in worker thread: KeyError
 ============================================================
 ```
-
-### Error Handling
-
-```
-$ python3 analyzer.py --log-file nonexistent.log
-
-[INFO] Analyzing log file: 'nonexistent.log'
-
-[ERROR] Log file not found: 'nonexistent.log'
-```
-
 ---
 
 ## 📁 Project Structure
 
 ```
 log-file-analyzer/
-├── analyzer.py          # Main CLI application (all logic)
-├── app.log              # Sample log file for testing/demo
-├── README.md            # Project documentation
-└── report.csv           # Example CSV export output
+├── app.py         
+├── log_analyzer.py            
+├── log_reader.py           
+└── README.md        
 ```
 
 ---

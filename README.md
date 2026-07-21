@@ -56,17 +56,12 @@ Analyze the default `app.log` file:
 ```bash
 python3 app.py
 ```
-
-### Search for a Keyword
-
-Find every log line containing a specific word or phrase:
-
-```bash
-python3 analyzer.py --search "database"
-python3 analyzer.py --search "timeout"
-python3 analyzer.py --search "ERROR"
+Then open in browser
 ```
-
+http://localhost:5000/
+```
+And drop the .log file and see all analysis about the file
+ 
 ---
 
 ## 📋 Example Output

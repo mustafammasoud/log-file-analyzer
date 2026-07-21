@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0a0c1a;
+            color: #e8ecf4;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+        /* HEADER */
+        header {
+            background: rgba(10, 12, 26, 0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid #1e2348;
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header .wrap { display: flex; align-items: center; justify-content: space-between; }
+
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 18px; color: #fff;
+            box-shadow: 0 4px 20px rgba(124, 92, 252, 0.25);
+        }
+        .brand h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
+        .brand span { font-size: 14px; color: #64748b; display: block; margin-top: -2px; }
+
+        .pill {
+            padding: 8px 20px;
+            background: #13162b;
+            border: 1px solid #1e2348;
+            border-radius: 100px;
+            font-size: 14px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pill strong { color: #7c5cfc; }
+
+        /* UPLOAD BOX */
+        .upload-zone { padding: 56px 0 40px; }
+
+        .drop-box {
+            background: linear-gradient(145deg, #13162b, #15193a);
+            border: 2.5px dashed #1e2348;
+            border-radius: 20px;
+            padding: 64px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.35s ease;
+        }
+        .drop-box:hover { border-color: #7c5cfc; box-shadow: 0 0 60px rgba(124, 92, 252, 0.12); }
+        .drop-box.dragover { border-color: #7c5cfc; background: rgba(124, 92, 252, 0.06); transform: scale(1.01); }
+
+        .drop-icon { font-size: 56px; margin-bottom: 18px; display: block; }
+        .drop-box h2 { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+        .drop-box p { color: #64748b; font-size: 16px; margin-bottom: 28px; }
+        .drop-box p strong { color: #cbd5e1; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+            color: #fff;
+            box-shadow: 0 4px 24px rgba(124, 92, 252, 0.25);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 36px rgba(124, 92, 252, 0.35); }
+
+        .btn-green {
+            background: linear-gradient(135deg, #059669, #34d399);
+            color: #fff;
+            box-shadow: 0 4px 24px rgba(52, 211, 153, 0.2);
+        }
+        .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 36px rgba(52, 211, 153, 0.3); }
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #1e2348;
+            color: #94a3b8;
+        }
+        .btn-outline:hover { background: #13162b; color: #e2e8f0; border-color: rgba(255,255,255,0.12); }
+
+        #file-input { display: none; }
+
+        .file-badges { margin-top: 18px; }
+        .file-badges span {
+            display: inline-block;
+            margin: 4px 8px;
+            padding: 6px 16px;
+            background: #1a1f3a;
+            border: 1px solid #1e2348;
+            border-radius: 100px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .alert {
+            padding: 16px 24px;
+            margin-top: 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            color: #fca5a5;
+        }
+
+        /* DASHBOARD */
+        .dash { padding-bottom: 80px; }
+
+        /* STAT CARDS */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: #13162b;
+            border: 1px solid #1e2348;
+            border-radius: 16px;
+            padding: 26px 24px;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 38px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+        .stat-sub { font-size: 13px; color: #475569; margin-top: 6px; }
+
+        /* CHARTS */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            margin-bottom: 36px;
+        }
+        @media (max-width: 800px) { .chart-grid { grid-template-columns: 1fr; } }
+        .chart-box {
+            background: #13162b;
+            border: 1px solid #1e2348;
+            border-radius: 16px;
+            padding: 28px;
+        }
+        .chart-box h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-box canvas { max-height: 250px; max-width: 100%; }
+
+        /* SECTION HEADINGS */
+        .sec-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* TABLE */
+        .tbl-wrap {
+            background: #13162b;
+            border: 1px solid #1e2348;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; }
+        th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 1px solid #1e2348;
+            background: rgba(124, 92, 252, 0.04);
+        }
+        td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #1e2348;
+            color: #94a3b8;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.015); }
+        td strong { color: #e2e8f0; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-info { background: rgba(96,165,250,0.12); color: #60a5fa; }
+        .badge-warn { background: rgba(251,191,36,0.12); color: #fbbf24; }
+        .badge-err { background: rgba(248,113,113,0.12); color: #f87171; }
+        .badge-crit { background: rgba(167,139,250,0.12); color: #a78bfa; }
+
+        .meta {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 24px;
+        }
+        .meta strong { color: #34d399; font-weight: 600; }
+
+        /* ERRORS */
+        .err-box {
+            background: #13162b;
+            border: 1px solid #1e2348;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .err-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #1e2348;
+        }
+        .err-row:last-child { border-bottom: none; }
+        .err-num {
+            min-width: 40px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(248, 113, 113, 0.1);
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #f87171;
+        }
+        .err-text { flex: 1; font-size: 15px; color: #e2e8f0; font-weight: 500; }
+        .err-track {
+            width: 120px;
+            height: 6px;
+            background: #1a1f3a;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .err-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171, #fca5a5);
+            border-radius: 4px;
+        }
+
+        /* EXPORT SECTION — BIG AND CLEAR */
+        .export-section {
+            background: linear-gradient(145deg, #13162b, #181d38);
+            border: 1px solid #1e2348;
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 20px;
+        }
+        .export-section .sec-title { margin-bottom: 8px; }
+        .export-desc {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 24px;
+        }
+        .export-btns {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .export-btns .btn { padding: 16px 36px; font-size: 17px; border-radius: 14px; }
+        .export-btns .btn .icon { font-size: 22px; }
+
+        @media (max-width: 600px) {
+            header .wrap { flex-direction: column; gap: 12px; text-align: center; }
+            .drop-box { padding: 40px 24px; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 30px; }
+            .stat-card { padding: 20px; }
+            .err-track { width: 60px; }
+            .export-btns .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="wrap">
+        <div class="brand">
+            <div class="brand-icon">LA</div>
+            <div>
+                <h1>Log Analyzer</h1>
+                <span>Upload your .log files and get instant insights</span>
+            </div>
+        </div>
+        <div class="pill">
+            ⚡ <strong>Live</strong> &nbsp;·&nbsp; Flask + Chart.js
+        </div>
+    </div>
+</header>
+
+<main class="wrap">
+
+    <!-- ===== UPLOAD ===== -->
+    <section class="upload-zone">
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <div class="drop-box" id="drop-zone">
+                <span class="drop-icon">📂</span>
+                <h2>Upload your log files</h2>
+                <p>Drop <strong>.log</strong> files here &mdash; or click to browse</p>
+                <button type="button" class="btn btn-primary" id="browse-btn">📁 Choose Files</button>
+                <input type="file" name="log_files" id="file-input" multiple accept=".log" required>
+                <div class="file-badges" id="file-list"></div>
+            </div>
+        </form>
+        <div id="error-area"></div>
+    </section>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="dash" id="dashboard" style="display:none;">
+
+        <!-- STATS -->
+        <div class="stat-grid" id="stats-grid"></div>
+
+        <!-- CHARTS -->
+        <div class="chart-grid">
+            <div class="chart-box">
+                <h3> Log Level Distribution</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>📊 Log Level Comparison</h3>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="sec-title">📄 Per-File Breakdown</div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th><span class="badge badge-info">INFO</span></th>
+                        <th><span class="badge badge-warn">WARNING</span></th>
+                        <th><span class="badge badge-err">ERROR</span></th>
+                        <th><span class="badge badge-crit">CRITICAL</span></th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+
+        <!-- EXECUTION TIME -->
+        <div class="meta" id="meta-line"></div>
+
+        <!-- TOP ERRORS -->
+        <div id="errors-section" style="display:none;">
+            <div class="sec-title"> Most Common Errors</div>
+            <div class="err-box" id="errors-list"></div>
+        </div>
+
+        <!-- === EXPORT SECTION — CHOOSE JSON OR CSV === -->
+        <div class="export-section">
+            <div class="sec-title">⬇️ Download Report</div>
+            <p class="export-desc">
+                Choose your preferred format to download the analysis report.
+            </p>
+            <div class="export-btns">
+                <a href="/download/json" class="btn btn-primary">
+                    <span class="icon">📄</span> Download as JSON
+                </a>
+                <a href="/download/csv" class="btn btn-green">
+                    <span class="icon">📊</span> Download as CSV
+                </a>
+                <a href="/" class="btn btn-outline">
+                    🔄 New Analysis
+                </a>
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+<!-- ===== JSON DATA PAYLOAD (zero Jinja in HTML body) ===== -->
+<script id="payload" type="application/json">{
+  "analysis": {% if analysis %}true{% else %}false{% endif %},
+  "grand_total": {{ grand_total | default(0) | tojson }},
+  "files_analyzed": {{ files_analyzed | default([]) | tojson }},
+  "level_counts": {{ level_counts | default({}) | tojson }},
+  "common_errors": {{ common_errors | default([]) | tojson }},
+  "per_file_data": {{ per_file_data | default([]) | tojson }},
+  "execution_time": {{ execution_time | default(0) | tojson }},
+  "error": {{ error | default(None) | tojson }}
+}</script>
+
+<script>
+(function() {
+    function ready(fn) {
+        if (document.readyState !== 'loading') { fn(); }
+        else { document.addEventListener('DOMContentLoaded', fn); }
+    }
+
+    // Escape any user-controlled string before it's inserted via innerHTML
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    ready(function() {
+
+        var payload = JSON.parse(document.getElementById('payload').textContent);
+
+        // ---- Error display ----
+        if (payload.error) {
+            document.getElementById('error-area').innerHTML =
+                '<div class="alert alert-error">⚠️ ' + escapeHtml(payload.error) + '</div>';
+        }
+
+        // ---- No analysis? just attach upload handlers and exit ----
+        if (!payload.analysis) {
+            attachUploadHandlers();
+            return;
+        }
+
+        // ---- Show dashboard ----
+        document.getElementById('dashboard').style.display = 'block';
+
+        var c = payload.level_counts || {};
+        var gt = payload.grand_total || 0;
+        var files = payload.files_analyzed || [];
+        var perFile = payload.per_file_data || [];
+        var errors = payload.common_errors || [];
+        var execTime = payload.execution_time || 0;
+
+        function pct(v) {
+            return gt ? ((v / gt) * 100).toFixed(1) : '0';
+        }
+
+        // ---- STAT CARDS ----
+        var cards = [
+            { label: 'Total Logs',      value: gt,                         sub: files.length + ' file(s)' },
+            { label: 'Info',            value: c.INFO || 0,                sub: pct(c.INFO) + '%' },
+            { label: 'Warning',         value: c.WARNING || 0,             sub: pct(c.WARNING) + '%' },
+            { label: 'Error',           value: c.ERROR || 0,               sub: pct(c.ERROR) + '%' },
+            { label: 'Critical',       value: c.CRITICAL || 0,            sub: pct(c.CRITICAL) + '%' }
+        ];
+        var statsHtml = '';
+        for (var i = 0; i < cards.length; i++) {
+            var s = cards[i];
+            statsHtml += '<div class="stat-card">' +
+                '<div class="stat-label">' + escapeHtml(s.label) + '</div>' +
+                '<div class="stat-value">' + escapeHtml(s.value) + '</div>' +
+                '<div class="stat-sub">' + escapeHtml(s.sub) + '</div>' +
+            '</div>';
+        }
+        document.getElementById('stats-grid').innerHTML = statsHtml;
+
+        // ---- TABLE ----
+        var tableHtml = '';
+        for (var i = 0; i < perFile.length; i++) {
+            var f = perFile[i];
+            tableHtml += '<tr>' +
+                '<td><strong>' + escapeHtml(f.name) + '</strong></td>' +
+                '<td>' + escapeHtml(f.INFO) + '</td>' +
+                '<td>' + escapeHtml(f.WARNING) + '</td>' +
+                '<td>' + escapeHtml(f.ERROR) + '</td>' +
+                '<td>' + escapeHtml(f.CRITICAL) + '</td>' +
+                '<td><strong>' + escapeHtml(f.total) + '</strong></td>' +
+            '</tr>';
+        }
+        document.getElementById('table-body').innerHTML = tableHtml;
+
+        // ---- EXECUTION TIME ----
+        document.getElementById('meta-line').innerHTML =
+            '⏱️ Analysis completed in <strong>' + escapeHtml(execTime) + 's</strong>';
+
+        // ---- TOP ERRORS ----
+        if (errors.length > 0) {
+            document.getElementById('errors-section').style.display = 'block';
+            var maxCnt = errors[0][1] || 1;
+            var errHtml = '';
+            for (var i = 0; i < errors.length; i++) {
+                var msg = errors[i][0];
+                var cnt = errors[i][1];
+                var p = Math.round((cnt / maxCnt) * 100);
+                errHtml += '<div class="err-row">' +
+                    '<div class="err-num">' + escapeHtml(cnt) + '</div>' +
+                    '<div class="err-text">' + escapeHtml(msg) + '</div>' +
+                    '<div class="err-track"><div class="err-fill" style="width:' + p + '%;"></div></div>' +
+                '</div>';
+            }
+            document.getElementById('errors-list').innerHTML = errHtml;
+        }
+
+        // ---- CHARTS ----
+        var labels = ['INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+        var values = [c.INFO || 0, c.WARNING || 0, c.ERROR || 0, c.CRITICAL || 0];
+        var colors = ['#60a5fa', '#fbbf24', '#f87171', '#a78bfa'];
+        var total = values.reduce(function(a, b) { return a + b; }, 0);
+
+        if (total > 0) {
+
+            var pieCtx = document.getElementById('pieChart');
+            if (pieCtx) {
+                new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '64%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#64748b',
+                                    padding: 16,
+                                    font: { family: 'Inter', size: 13 },
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            var barCtx = document.getElementById('barChart');
+            if (barCtx) {
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Count',
+                            data: values,
+                            backgroundColor: colors,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            barPercentage: 0.55
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#475569', font: { family: 'Inter', size: 12 } },
+                                grid: { color: 'rgba(30, 35, 72, 0.5)' }
+                            },
+                            x: {
+                                ticks: { color: '#64748b', font: { family: 'Inter', size: 12 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ---- ATTACH UPLOAD HANDLERS ----
+        attachUploadHandlers();
+
+        function attachUploadHandlers() {
+            var fileInput = document.getElementById('file-input');
+            var browseBtn = document.getElementById('browse-btn');
+            var dropZone = document.getElementById('drop-zone');
+            var fileListEl = document.getElementById('file-list');
+            var uploadForm = document.getElementById('upload-form');
+
+            // Clicking anywhere in the drop zone (not just the button) opens the file picker
+            dropZone.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            browseBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function() {
+                updateFileList(this.files);
+                if (this.files.length > 0) {
+                    uploadForm.submit();
+                }
+            });
+
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    updateFileList(e.dataTransfer.files);
+                    uploadForm.submit();
+                }
+            });
+
+            function updateFileList(files) {
+                var html = '';
+                for (var i = 0; i < files.length; i++) {
+                    html += '<span>📄 ' + escapeHtml(files[i].name) + '</span>';
+                }
+                fileListEl.innerHTML = html;
+            }
+        }
+
+    });
+})();
+</script>
+
+</body>
+</html>

@@ -241,6 +241,74 @@
         }
         .chart-box canvas { max-height: 250px; max-width: 100%; }
 
+        /* TIMELINE */
+        .timeline-box {
+            background: #1e1710;
+            border: 1px solid #33281a;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .timeline-box canvas { max-height: 260px; max-width: 100%; }
+
+        /* COMPARISON (2-file diff) */
+        .compare-box {
+            background: #1e1710;
+            border: 1px solid #33281a;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .compare-names {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 14px;
+            color: #b6a893;
+            margin-bottom: 18px;
+        }
+        .compare-names strong { color: #ede4d6; }
+        .compare-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px; }
+        .compare-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8a7a63;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 1px solid #33281a;
+        }
+        .compare-table td { padding: 10px 16px; border-bottom: 1px solid #33281a; color: #b6a893; }
+        .compare-table tr:last-child td { border-bottom: none; }
+        .diff-up { color: #d1594f; font-weight: 600; }
+        .diff-down { color: #7ea854; font-weight: 600; }
+        .diff-flat { color: #6b5c47; }
+        .compare-unique-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 700px) { .compare-unique-grid { grid-template-columns: 1fr; } }
+        .compare-unique h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #8a7a63;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 10px;
+        }
+        .compare-unique ul { list-style: none; }
+        .compare-unique li {
+            font-size: 14px;
+            color: #ede4d6;
+            padding: 8px 12px;
+            background: #14110c;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+        .compare-unique .empty-note { color: #6b5c47; font-size: 13px; padding: 4px 0; }
+
         /* SECTION HEADINGS */
         .sec-title {
             font-size: 20px;
@@ -287,6 +355,7 @@
             font-size: 12px;
             font-weight: 600;
         }
+        .badge-debug { background: rgba(138,122,99,0.16); color: #b6a893; }
         .badge-info { background: rgba(91,143,199,0.14); color: #5b8fc7; }
         .badge-warn { background: rgba(232,178,61,0.14); color: #e8b23d; }
         .badge-err { background: rgba(209,89,79,0.14); color: #d1594f; }
@@ -443,6 +512,14 @@
             </div>
         </div>
 
+        <!-- TIMELINE -->
+        <div id="timeline-section" style="display:none;">
+            <div class="sec-title">📈 Timeline</div>
+            <div class="timeline-box">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
         <!-- TABLE -->
         <div class="sec-title">📄 Per-File Breakdown</div>
         <div class="tbl-wrap">
@@ -450,6 +527,7 @@
                 <thead>
                     <tr>
                         <th>File</th>
+                        <th><span class="badge badge-debug">DEBUG</span></th>
                         <th><span class="badge badge-info">INFO</span></th>
                         <th><span class="badge badge-warn">WARNING</span></th>
                         <th><span class="badge badge-err">ERROR</span></th>
@@ -459,6 +537,30 @@
                 </thead>
                 <tbody id="table-body"></tbody>
             </table>
+        </div>
+
+        <!-- COMPARISON (shown only when exactly 2 files were analyzed together) -->
+        <div id="compare-section" style="display:none;">
+            <div class="sec-title">🆚 Comparison</div>
+            <div class="compare-box">
+                <div class="compare-names" id="compare-names"></div>
+                <table class="compare-table">
+                    <thead>
+                        <tr><th>Level</th><th id="compare-col1-label">File A</th><th id="compare-col2-label">File B</th><th>Δ</th></tr>
+                    </thead>
+                    <tbody id="compare-table-body"></tbody>
+                </table>
+                <div class="compare-unique-grid">
+                    <div class="compare-unique">
+                        <h4 id="compare-unique1-label">Only in File A</h4>
+                        <ul id="compare-unique1-list"></ul>
+                    </div>
+                    <div class="compare-unique">
+                        <h4 id="compare-unique2-label">Only in File B</h4>
+                        <ul id="compare-unique2-list"></ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- EXECUTION TIME -->
@@ -503,6 +605,8 @@
   "per_file_data": {{ per_file_data | default([]) | tojson }},
   "execution_time": {{ execution_time | default(0) | tojson }},
   "filter_summary": {{ filter_summary | default('') | tojson }},
+  "timeline": {{ timeline | default({}) | tojson }},
+  "comparison": {{ comparison | default(None) | tojson }},
   "error": {{ error | default(None) | tojson }}
 }</script>
 
@@ -556,6 +660,7 @@
         // ---- STAT CARDS ----
         var cards = [
             { label: 'Total Logs',      value: gt,                         sub: files.length + ' file(s)' },
+            { label: 'Debug',           value: c.DEBUG || 0,               sub: pct(c.DEBUG) + '%' },
             { label: 'Info',            value: c.INFO || 0,                sub: pct(c.INFO) + '%' },
             { label: 'Warning',         value: c.WARNING || 0,             sub: pct(c.WARNING) + '%' },
             { label: 'Error',           value: c.ERROR || 0,               sub: pct(c.ERROR) + '%' },
@@ -578,6 +683,7 @@
             var f = perFile[i];
             tableHtml += '<tr>' +
                 '<td><strong>' + escapeHtml(f.name) + '</strong></td>' +
+                '<td>' + escapeHtml(f.DEBUG) + '</td>' +
                 '<td>' + escapeHtml(f.INFO) + '</td>' +
                 '<td>' + escapeHtml(f.WARNING) + '</td>' +
                 '<td>' + escapeHtml(f.ERROR) + '</td>' +
@@ -614,9 +720,9 @@
         }
 
         // ---- CHARTS ----
-        var labels = ['INFO', 'WARNING', 'ERROR', 'CRITICAL'];
-        var values = [c.INFO || 0, c.WARNING || 0, c.ERROR || 0, c.CRITICAL || 0];
-        var colors = ['#5b8fc7', '#e8b23d', '#d1594f', '#d9822c'];
+        var labels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+        var values = [c.DEBUG || 0, c.INFO || 0, c.WARNING || 0, c.ERROR || 0, c.CRITICAL || 0];
+        var colors = ['#8a7a63', '#5b8fc7', '#e8b23d', '#d1594f', '#d9822c'];
         var total = values.reduce(function(a, b) { return a + b; }, 0);
 
         if (total > 0) {
@@ -681,6 +787,118 @@
                     }
                 });
             }
+        }
+
+        // ---- TIMELINE CHART ----
+        var timeline = payload.timeline || {};
+        var tLabels = timeline.labels || [];
+        var tSeries = timeline.series || {};
+        if (tLabels.length > 0) {
+            document.getElementById('timeline-section').style.display = 'block';
+            var timelineCtx = document.getElementById('timelineChart');
+            if (timelineCtx) {
+                var levelOrder = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+                var levelColors = { DEBUG: '#8a7a63', INFO: '#5b8fc7', WARNING: '#e8b23d', ERROR: '#d1594f', CRITICAL: '#d9822c' };
+                var datasets = [];
+                for (var li = 0; li < levelOrder.length; li++) {
+                    var lvl = levelOrder[li];
+                    var data = tSeries[lvl] || [];
+                    // Skip a level entirely if it never occurs, to keep the legend clean
+                    var hasAny = data.some(function(v) { return v > 0; });
+                    if (!hasAny) continue;
+                    datasets.push({
+                        label: lvl,
+                        data: data,
+                        borderColor: levelColors[lvl],
+                        backgroundColor: levelColors[lvl],
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 2,
+                        borderWidth: 2
+                    });
+                }
+                new Chart(timelineCtx, {
+                    type: 'line',
+                    data: { labels: tLabels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#8a7a63', padding: 16, font: { family: 'Inter', size: 13 }, usePointStyle: true }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#6b5c47', font: { family: 'Inter', size: 12 }, precision: 0 },
+                                grid: { color: 'rgba(51, 40, 26, 0.5)' }
+                            },
+                            x: {
+                                ticks: { color: '#8a7a63', font: { family: 'Inter', size: 11 }, maxRotation: 45, minRotation: 0 },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ---- COMPARISON (only present when exactly 2 files were analyzed) ----
+        var comparison = payload.comparison;
+        if (comparison) {
+            document.getElementById('compare-section').style.display = 'block';
+
+            document.getElementById('compare-names').innerHTML =
+                '<span>🅰️ <strong>' + escapeHtml(comparison.file1) + '</strong></span>' +
+                '<span>vs</span>' +
+                '<span>🅱️ <strong>' + escapeHtml(comparison.file2) + '</strong></span>';
+
+            document.getElementById('compare-col1-label').textContent = comparison.file1;
+            document.getElementById('compare-col2-label').textContent = comparison.file2;
+            document.getElementById('compare-unique1-label').textContent = 'Only in ' + comparison.file1;
+            document.getElementById('compare-unique2-label').textContent = 'Only in ' + comparison.file2;
+
+            var perFileByName = {};
+            for (var pfi = 0; pfi < perFile.length; pfi++) {
+                perFileByName[perFile[pfi].name] = perFile[pfi];
+            }
+            var f1counts = perFileByName[comparison.file1] || {};
+            var f2counts = perFileByName[comparison.file2] || {};
+            var diffLevels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+            var compareRows = '';
+            for (var dli = 0; dli < diffLevels.length; dli++) {
+                var lvl = diffLevels[dli];
+                var v1 = f1counts[lvl] || 0;
+                var v2 = f2counts[lvl] || 0;
+                var d = (comparison.level_diff && comparison.level_diff[lvl] !== undefined) ? comparison.level_diff[lvl] : (v2 - v1);
+                var dClass = d > 0 ? 'diff-up' : (d < 0 ? 'diff-down' : 'diff-flat');
+                var dText = d > 0 ? ('+' + d) : String(d);
+                compareRows += '<tr>' +
+                    '<td><strong>' + escapeHtml(lvl) + '</strong></td>' +
+                    '<td>' + escapeHtml(v1) + '</td>' +
+                    '<td>' + escapeHtml(v2) + '</td>' +
+                    '<td class="' + dClass + '">' + escapeHtml(dText) + '</td>' +
+                '</tr>';
+            }
+            document.getElementById('compare-table-body').innerHTML = compareRows;
+
+            function renderUniqueList(elId, msgs) {
+                var el = document.getElementById(elId);
+                if (!msgs || msgs.length === 0) {
+                    el.innerHTML = '<div class="empty-note">No unique errors</div>';
+                    return;
+                }
+                var html = '';
+                for (var ui = 0; ui < msgs.length; ui++) {
+                    html += '<li>' + escapeHtml(msgs[ui]) + '</li>';
+                }
+                el.innerHTML = html;
+            }
+            renderUniqueList('compare-unique1-list', comparison.only_in_file1);
+            renderUniqueList('compare-unique2-list', comparison.only_in_file2);
         }
 
         // ---- ATTACH UPLOAD HANDLERS ----

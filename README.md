@@ -6,13 +6,13 @@ A powerful yet lightweight **Python CLI tool** that reads application log files,
 
 ##  Features
 
-- Log Level Analysis** — Automatically counts `INFO`, `WARNING`, and `ERROR` messages using intelligent regex parsing.
-- CSV Export** — Save the analysis summary to a CSV file for reporting or further processing.
-- Keyword Search** — Search for any keyword (case-insensitive) across all log lines, with line numbers and formatted output.
-- Custom Log File Support** — Analyze any log file by specifying its path via `--log-file`.
-- Robust Error Handling** — Gracefully handles missing files, empty files, directories, permission errors, and more.
-- Clean & Modular Code** — Well-documented functions with type hints, docstrings, and logical separation of concerns.
-- Zero External Dependencies** — Built entirely on Python's standard library — no `pip install` required.
+- Log Level Analysis — Automatically counts `INFO`, `WARNING`, and `ERROR` messages using intelligent regex parsing.
+- CSV Export — Save the analysis summary to a CSV file for reporting or further processing.
+- Keyword Search — Search for any keyword (case-insensitive) across all log lines, with line numbers and formatted output.
+- Custom Log File Support — Analyze any log file by specifying its path via `--log-file`.
+- Robust Error Handling — Gracefully handles missing files, empty files, directories, permission errors, and more.
+- Clean & Modular Code — Well-documented functions with type hints, docstrings, and logical separation of concerns.
+- Zero External Dependencies — Built entirely on Python's standard library — no `pip install` required.
 
 ---
 

@@ -28,7 +28,7 @@
 ## How to Run
 
 ```bash
-cd /home/kaidoms/Me/Log-File-Analyzer
+cd log-file-analyzer
 pip install -r requirements.txt
 python3 app.py
 # Open http://localhost:5000
